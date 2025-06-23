@@ -153,6 +153,7 @@ else:
 
 # --- 勝率シナリオ比較 ---
 st.subheader("◼ 勝率シナリオ比較")
+wr_stop_on7 = st.checkbox("7勝達成までシミュレーションする", key="wr_stop_on7")
 col1, col2, col3 = st.columns(3)
 with col1:
     wr_min = st.number_input("勝率範囲下限", min_value=0.0, max_value=1.0, value=0.3, step=0.02, format="%.2f")
@@ -164,11 +165,31 @@ with col3:
 wr_list = np.arange(wr_min, wr_max + 1e-6, wr_step)
 scenario = []
 for p in wr_list:
-    d = dp(0,0,p)
-    ej = sum(reward_table[k]*v for k,v in d.items())
-    eb = sum(box_table[k]*v for k,v in d.items())
-    ej_total = ej + eb * (box_price_dollar/jem_price_dollar)
-    nj = ej_total - entry_cost
+    d = dp(0, 0, p)
+    if wr_stop_on7:
+        p7 = d.get(7, 0)
+        p_fail = 1 - p7
+        gem_fail_avg = sum(reward_table[k] * d[k] for k in d if k != 7) / (p_fail or 1)
+        tot_jem = tot_box = 0.0
+        exp_trials = 0.0
+        for i in range(1, max_trials + 1):
+            p_succ = (p_fail ** (i - 1)) * p7
+            p_end_fail = p_fail ** max_trials if i == max_trials else 0
+            gem_succ = gem_fail_avg * (i - 1) + reward_table[7]
+            box_succ = box_table[7]
+            gem_fail = gem_fail_avg * max_trials
+            ej = gem_succ * p_succ + gem_fail * p_end_fail
+            eb = box_succ * p_succ
+            exp_trials += i * (p_succ + p_end_fail)
+            tot_jem += ej
+            tot_box += eb
+        rev_jem_total = tot_jem + tot_box * (box_price_dollar / jem_price_dollar)
+        nj = rev_jem_total - entry_cost * exp_trials
+    else:
+        ej = sum(reward_table[k] * v for k, v in d.items())
+        eb = sum(box_table[k] * v for k, v in d.items())
+        ej_total = ej + eb * (box_price_dollar / jem_price_dollar)
+        nj = ej_total - entry_cost
     scenario.append({
         "勝率": p,
         "純期待利益(ジェム)": nj,
