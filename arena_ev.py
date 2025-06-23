@@ -118,10 +118,12 @@ if stop_on7:
     sim_df2 = pd.DataFrame({
         "勝利数": list(sim_dist.keys()),
         "期待回数": list(sim_dist.values()),
-        "%": [v/exp_trials*100 for v in sim_dist.values()]
     })
+    # 期待試行回数を母数にした割合(%)
+    sim_df2["割合(%)"] = sim_df2["期待回数"] / exp_trials * 100
     sim_df2 = sim_df2.sort_values("勝利数").reset_index(drop=True)
     st.subheader("◼ シミュレーション後の勝利数分布（期待回数）")
+    st.write(f"(母数: 期待試行回数 {exp_trials:.2f} 回)")
     st.table(sim_df2)
 else:
     trials = max_trials
