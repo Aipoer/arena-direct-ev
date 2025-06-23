@@ -194,10 +194,14 @@ for p in wr_list:
         eb = sum(box_table[k] * v for k, v in d.items())
         ej_total = ej + eb * (box_price_dollar / jem_price_dollar)
         nj = ej_total - entry_cost
+        exp_trials = 1
+    cost = entry_cost * exp_trials
+    ev_pct = (nj / cost * 100) if cost else 0
     scenario.append({
         "勝率": p,
         "純期待利益(ジェム)": nj,
-        "純期待利益(ドル)": nj * jem_price_dollar
+        "純期待利益(ドル)": nj * jem_price_dollar,
+        "期待値(%)": ev_pct
     })
 sc_df = pd.DataFrame(scenario)
 
