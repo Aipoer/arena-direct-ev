@@ -90,19 +90,16 @@ with st.spinner("計算中..."):
     total_box = 0
     total_dollar = 0
 
+    jem_once = expected_jem_per_try
+
     for i in range(1, sim_box_try + 1):
-        prob_success = (miss_prob ** (i - 1)) * box_prob if i < sim_box_try else 0
-        prob_fail = miss_prob ** sim_box_try if i == sim_box_try else 0
+        prob_success = (miss_prob ** (i - 1)) * box_prob if i < sim_box_try else box_prob * (miss_prob ** (i - 1))
+        prob_fail = (miss_prob ** sim_box_try) if i == sim_box_try else 0
 
-        # 1回分の分布から合計ジェムとボックス
-        jem_once = sum(reward_table[k] * v for k, v in distribution.items())
-        box_once = sum(box_table[k] * v for k, v in distribution.items())
-        jem = jem_once * i
-        box = box_once * i
-
-        jem_exp = jem * (prob_success + prob_fail)
-        box_exp = box * (prob_success + prob_fail)
-        dollar_exp = (jem + box * (box_price_dollar / jem_price_dollar)) * (prob_success + prob_fail) * jem_price_dollar
+        # その回数で終わる場合の期待値を加算
+        jem_exp = jem_once * i * (prob_success + prob_fail)
+        box_exp = (1.0 * prob_success)  # 成功時だけBOX加算
+        dollar_exp = (jem_once * i + box_exp * (box_price_dollar / jem_price_dollar)) * (prob_success + prob_fail) * jem_price_dollar
 
         try_data["回数"].append(i)
         try_data["BOX獲得（確率）"].append(prob_success)
