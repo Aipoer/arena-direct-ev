@@ -154,6 +154,10 @@ else:
 # --- 勝率シナリオ比較 ---
 st.subheader("◼ 勝率シナリオ比較")
 wr_stop_on7 = st.checkbox("7勝達成までシミュレーションする", key="wr_stop_on7")
+if wr_stop_on7:
+    wr_max_trials = st.number_input(
+        "最大試行回数", min_value=1, max_value=30, value=10, key="wr_max_trials"
+    )
 col1, col2, col3 = st.columns(3)
 with col1:
     wr_min = st.number_input("勝率範囲下限", min_value=0.0, max_value=1.0, value=0.3, step=0.02, format="%.2f")
@@ -172,12 +176,12 @@ for p in wr_list:
         gem_fail_avg = sum(reward_table[k] * d[k] for k in d if k != 7) / (p_fail or 1)
         tot_jem = tot_box = 0.0
         exp_trials = 0.0
-        for i in range(1, max_trials + 1):
+        for i in range(1, wr_max_trials + 1):
             p_succ = (p_fail ** (i - 1)) * p7
-            p_end_fail = p_fail ** max_trials if i == max_trials else 0
+            p_end_fail = p_fail ** wr_max_trials if i == wr_max_trials else 0
             gem_succ = gem_fail_avg * (i - 1) + reward_table[7]
             box_succ = box_table[7]
-            gem_fail = gem_fail_avg * max_trials
+            gem_fail = gem_fail_avg * wr_max_trials
             ej = gem_succ * p_succ + gem_fail * p_end_fail
             eb = box_succ * p_succ
             exp_trials += i * (p_succ + p_end_fail)
