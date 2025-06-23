@@ -266,3 +266,53 @@ if st.button("シミュレーション開始"):
     st.write(f"総収入: {total_gem} ジェム + {total_box} 箱 (~${rev_dollar_total:.2f})")
     st.write(f"総コスト: {cost_jem_total} ジェム (~${cost_dollar_total:.2f})")
     st.write(f"純利益: {net_jem_total:.2f} ジェム (~${net_dollar_total:.2f})")
+
+# --- ランダム勝率シミュレーション(ジェム) ---
+st.subheader("◼ ランダム勝率シミュレーション(ジェム)")
+init_gem = st.number_input("開始ジェム残高", min_value=0, value=entry_cost, step=1000)
+randg_stop7 = st.checkbox("7勝達成で終了", key="randg_stop7")
+randg_trials = st.number_input("参加回数上限", min_value=1, max_value=100, value=10, key="randg_trials")
+
+cg1, cg2, cg3 = st.columns(3)
+with cg1:
+    base_wr_g = st.number_input("基本勝率", 0.0, 1.0, 0.6, 0.01, key="base_wr_g")
+with cg2:
+    spread_wr_g = st.number_input("ブレ幅(±)", 0.0, 1.0, 0.1, 0.01, key="spread_wr_g")
+with cg3:
+    shape_k_g = st.number_input("分布形状k(1=均等、<1極端)", 0.1, 5.0, 1.0, 0.1, key="shape_k_g")
+
+if st.button("シミュレーション開始(ジェム)", key="randg_start"):
+    bal = int(init_gem)
+    total_box_g = 0
+    results_g = []
+    plays = 0
+    while bal >= entry_cost and plays < int(randg_trials):
+        bal -= entry_cost
+        p = float(np.clip(base_wr_g + (np.random.beta(shape_k_g, shape_k_g)-0.5)*2*spread_wr_g, 0, 1))
+        wins = losses = 0
+        while wins < 7 and losses < 2:
+            if np.random.random() < p:
+                wins += 1
+            else:
+                losses += 1
+        gem = reward_table[wins]
+        box = box_table[wins]
+        bal += gem
+        total_box_g += box
+        plays += 1
+        results_g.append({"回数": plays, "勝率": round(p,3), "勝利数": wins, "ジェム": gem, "BOX": box, "残高": bal})
+        if randg_stop7 and wins == 7:
+            break
+    resg_df = pd.DataFrame(results_g)
+    st.dataframe(resg_df, use_container_width=True)
+
+    rev_jem_total = bal + total_box_g * (box_price_dollar / jem_price_dollar)
+    rev_dollar_total = bal * jem_price_dollar + total_box_g * box_price_dollar
+    net_jem_total = rev_jem_total - init_gem
+    net_dollar_total = rev_dollar_total - init_gem * jem_price_dollar
+
+    st.write("### ✅ シミュレーション結果(ジェム)")
+    st.write(f"プレイ回数: {plays}")
+    st.write(f"最終ジェム残高: {bal}")
+    st.write(f"獲得BOX: {total_box_g}")
+    st.write(f"純利益: {net_jem_total:.2f} ジェム (~${net_dollar_total:.2f})")
