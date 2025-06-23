@@ -10,26 +10,37 @@ st.title("アリーナダイレクト 期待報酬シミュレーター")
 win_rate = st.slider("勝率", min_value=0.0, max_value=1.0, step=0.01, value=0.6)
 
 # 費用設定
-st.subheader("◼ コスト設定")
-entry_cost = st.number_input("参加費（ジェム）", value=8000)
-box_price_dollar = st.number_input("BOXの価格（ドル）", value=360.0)
-jem_price_dollar = st.number_input("ジェム単価（ドル/ジェム）", value=99.99 / 20000, format="%.6f")
+with st.expander("◼ コスト設定", expanded=True):
+    entry_cost = st.number_input("参加費（ジェム）", value=8000)
+    box_price_dollar = st.number_input("BOXの価格（ドル）", value=360.0)
+    jem_price_dollar = st.number_input("ジェム単価（ドル/ジェム）", value=99.99 / 20000, format="%.6f")
 
-# 報酬設定
-st.subheader("◼ 勝利数ごとの報酬入力（ジェム／BOX／パック）")
-reward_table = {}
-box_table = {}
-pack_table = {}
+# 報酬設定（デフォルト値）
+default_rewards = {
+    0: (0, 0.0, 0),
+    1: (0, 0.0, 0),
+    2: (0, 0.0, 0),
+    3: (3600, 0.0, 0),
+    4: (7200, 0.0, 0),
+    5: (10800, 0.0, 0),
+    6: (14400, 0.0, 0),
+    7: (0, 1.0, 0),
+}
 
-for i in range(0, 8):
-    st.markdown(f"**{i}勝**")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        reward_table[i] = st.number_input(f"ジェム({i}勝)", key=f"gem_{i}", value=0)
-    with col2:
-        box_table[i] = st.number_input(f"BOX({i}勝)", key=f"box_{i}", value=0.0, step=0.1)
-    with col3:
-        pack_table[i] = st.number_input(f"パック({i}勝)", key=f"pack_{i}", value=0)
+with st.expander("◼ 勝利数ごとの報酬入力（ジェム／BOX／パック）", expanded=False):
+    reward_table = {}
+    box_table = {}
+    pack_table = {}
+
+    for i in range(0, 8):
+        st.markdown(f"**{i}勝**")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            reward_table[i] = st.number_input(f"ジェム({i}勝)", key=f"gem_{i}", value=default_rewards[i][0])
+        with col2:
+            box_table[i] = st.number_input(f"BOX({i}勝)", key=f"box_{i}", value=default_rewards[i][1], step=0.1)
+        with col3:
+            pack_table[i] = st.number_input(f"パック({i}勝)", key=f"pack_{i}", value=default_rewards[i][2])
 
 # メモ化再帰で確率分布を計算
 @lru_cache(None)
