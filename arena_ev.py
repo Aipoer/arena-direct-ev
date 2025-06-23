@@ -67,11 +67,8 @@ with st.spinner("計算中..."):
 
     expected_jem = sum(reward_table.get(wins, 0) * prob for wins, prob in distribution.items())
     expected_box = sum(box_table.get(wins, 0) * prob for wins, prob in distribution.items())
-
     expected_box_jem_equivalent = expected_box * (box_price_dollar / jem_price_dollar)
     total_expected_reward_jem = expected_jem + expected_box_jem_equivalent
-
-    # 参加費をドル換算した正確な利益計算
     entry_cost_dollar = entry_cost * jem_price_dollar
     net_jem = total_expected_reward_jem - entry_cost
     net_dollar = (total_expected_reward_jem * jem_price_dollar) - entry_cost_dollar
@@ -85,13 +82,65 @@ with st.spinner("計算中..."):
     st.write(f"ドル換算での期待利益: ${net_dollar:.2f}")
 
     st.subheader("◼ 勝利数ごとの確率")
-    st.write("表形式で確認：")
-    df = pd.DataFrame({"勝利数": list(distribution.keys()), "確率（%）": [round(distribution[k] * 100, 2) for k in distribution]})
+    df = pd.DataFrame({
+        "勝利数": list(distribution.keys()),
+        "確率（%）": [distribution[k] * 100 for k in distribution],
+        "期待ジェム": [reward_table.get(k, 0) * distribution[k] for k in distribution],
+        "期待BOX": [box_table.get(k, 0) * distribution[k] for k in distribution],
+        "期待ドル": [(reward_table.get(k, 0) + box_table.get(k, 0) * (box_price_dollar / jem_price_dollar)) * distribution[k] * jem_price_dollar for k in distribution]
+    })
     df = df.sort_values("勝利数")
     st.dataframe(df, use_container_width=True)
 
     st.subheader("◼ シミュレーション：N回参加した場合の出現数（期待値）")
     sim_n = st.number_input("参加回数", min_value=1, value=1000)
-    sim_data = {str(k) + "勝": round(distribution[k] * sim_n) for k in sorted(distribution.keys())}
-    sim_df = pd.DataFrame([sim_data], index=[f"{sim_n}回中"])
-    st.dataframe(sim_df.T, use_container_width=True)
+    sim_data = {
+        "勝利数": [],
+        "発生回数": [],
+        "期待ジェム": [],
+        "期待BOX": [],
+        "期待ドル": []
+    }
+    for k in sorted(distribution.keys()):
+        sim_data["勝利数"].append(f"{k}勝")
+        sim_data["発生回数"].append(distribution[k] * sim_n)
+        sim_data["期待ジェム"].append(reward_table.get(k, 0) * distribution[k] * sim_n)
+        sim_data["期待BOX"].append(box_table.get(k, 0) * distribution[k] * sim_n)
+        total_jem = reward_table.get(k, 0) + box_table.get(k, 0) * (box_price_dollar / jem_price_dollar)
+        sim_data["期待ドル"].append(total_jem * distribution[k] * sim_n * jem_price_dollar)
+
+    sim_df = pd.DataFrame(sim_data)
+    st.dataframe(sim_df, use_container_width=True)
+
+    st.subheader("◼ シミュレーション：BOXが出るまでの試行回数別パターン")
+    sim_box_try = st.number_input("最大試行回数", min_value=1, value=10)
+    box_prob = distribution.get(7, 0)
+    box_miss_prob = 1 - box_prob
+
+    try_data = {
+        "回数": [],
+        "BOX獲得（確率）": [],
+        "BOX未獲得（確率）": [],
+        "合計": [],
+        "期待ジェム": [],
+        "期待BOX": [],
+        "期待ドル": []
+    }
+    for i in range(1, sim_box_try + 1):
+        box_get = box_miss_prob ** (i - 1) * box_prob
+        box_fail = box_miss_prob ** i
+        total_prob = box_get + box_fail
+        expected_jem = expected_jem * box_get
+        expected_box = expected_box * box_get
+        expected_dollar = (expected_jem + expected_box * (box_price_dollar / jem_price_dollar)) * jem_price_dollar
+
+        try_data["回数"].append(i)
+        try_data["BOX獲得（確率）"].append(box_get)
+        try_data["BOX未獲得（確率）"].append(box_fail)
+        try_data["合計"].append(total_prob)
+        try_data["期待ジェム"].append(expected_jem)
+        try_data["期待BOX"].append(expected_box)
+        try_data["期待ドル"].append(expected_dollar)
+
+    try_df = pd.DataFrame(try_data)
+    st.dataframe(try_df, use_container_width=True)
