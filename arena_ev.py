@@ -208,3 +208,58 @@ sc_df = pd.DataFrame(scenario)
 st.subheader("◼ 勝率 vs 純期待利益")
 st.line_chart(sc_df.set_index("勝率")["純期待利益(ジェム)"])
 st.dataframe(sc_df, use_container_width=True)
+
+# --- ランダム勝率シミュレーション ---
+st.subheader("◼ ランダム勝率シミュレーション")
+rand_stop7 = st.checkbox("7勝達成で終了", key="rand_stop7")
+rand_trials = st.number_input("参加回数上限", min_value=1, max_value=30, value=5, key="rand_trials")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    base_wr = st.number_input("基本勝率", 0.0, 1.0, 0.6, 0.01, key="base_wr")
+with col2:
+    spread_wr = st.number_input("ブレ幅(±)", 0.0, 1.0, 0.1, 0.01, key="spread_wr")
+with col3:
+    shape_k = st.number_input("分布形状k(1=均等、<1極端)", 0.1, 5.0, 1.0, 0.1, key="shape_k")
+
+sample_size = 1000
+samples = np.clip(base_wr + (np.random.beta(shape_k, shape_k, sample_size)-0.5)*2*spread_wr, 0, 1)
+hist, bins = np.histogram(samples, bins=20, range=(0,1))
+hist_df = pd.DataFrame({"win_rate": (bins[:-1]+bins[1:])/2, "count": hist})
+st.bar_chart(hist_df.set_index("win_rate"))
+
+if st.button("シミュレーション開始"):
+    results = []
+    total_gem = total_box = 0
+    played = 0
+    for i in range(int(rand_trials)):
+        p = float(np.clip(base_wr + (np.random.beta(shape_k, shape_k)-0.5)*2*spread_wr, 0, 1))
+        wins = losses = 0
+        while wins < 7 and losses < 2:
+            if np.random.random() < p:
+                wins += 1
+            else:
+                losses += 1
+        gem = reward_table[wins]
+        box = box_table[wins]
+        results.append({"回数": i+1, "勝率": round(p,3), "勝利数": wins, "ジェム": gem, "BOX": box})
+        total_gem += gem
+        total_box += box
+        played += 1
+        if rand_stop7 and wins == 7:
+            break
+    res_df = pd.DataFrame(results)
+    st.dataframe(res_df, use_container_width=True)
+
+    rev_jem_total = total_gem + total_box * (box_price_dollar / jem_price_dollar)
+    rev_dollar_total = total_gem * jem_price_dollar + total_box * box_price_dollar
+    cost_jem_total = entry_cost * played
+    cost_dollar_total = entry_cost * jem_price_dollar * played
+    net_jem_total = rev_jem_total - cost_jem_total
+    net_dollar_total = rev_dollar_total - cost_dollar_total
+
+    st.write("### ✅ シミュレーション結果")
+    st.write(f"プレイ回数: {played}")
+    st.write(f"総収入: {total_gem} ジェム + {total_box} 箱 (~${rev_dollar_total:.2f})")
+    st.write(f"総コスト: {cost_jem_total} ジェム (~${cost_dollar_total:.2f})")
+    st.write(f"純利益: {net_jem_total:.2f} ジェム (~${net_dollar_total:.2f})")
