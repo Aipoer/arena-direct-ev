@@ -114,24 +114,15 @@ if stop_on7:
     st.write(f"純期待利益: {net_jem_total:.2f} ジェム (~${net_dollar_total:.2f})")
 
         # --- シミュレーション後の勝利数分布 ---
-    # 最終勝利数分布（確率ベース）
-    p7 = dist.get(7, 0)
-    p_fail = 1 - p7
-    # 成功確率（7勝）
-    p_success_total = 1 - p_fail**max_trials
-    # 失敗時の勝利数分布（7勝以外）、正規化
-    fail_dist = {k: dist[k]/p_fail for k in dist if k != 7}
-    sim_probs = {7: p_success_total}
-    for k, prob in fail_dist.items():
-        sim_probs[k] = p_fail**max_trials * prob
-    # テーブル作成
+    # 各試行ごとの勝利数分布を試行回数分にスケーリング
+    sim_dist = {k: dist[k] * exp_trials for k in dist}
     sim_df2 = pd.DataFrame({
-        "勝利数": list(sim_probs.keys()),
-        "確率(%)": [v*100 for v in sim_probs.values()]
+        "勝利数": list(sim_dist.keys()),
+        "期待回数": list(sim_dist.values()),
     })
-    sim_df2 = sim_df2.sort_values("勝利数").reset_index(drop=True)
-    st.subheader("◼ シミュレーション後の勝利数分布（確率）")
-    st.write(f"(終了ロジック適用後の分布) )")
+    # 期待試行回数: 母数として表示
+    st.subheader("◼ シミュレーション後の勝利数分布（期待回数）")
+    st.write(f"(母数: 期待試行回数 {exp_trials:.2f} 回)")
     st.table(sim_df2)
 else:
     trials = max_trials
