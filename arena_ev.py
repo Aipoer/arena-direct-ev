@@ -1,5 +1,6 @@
 import streamlit as st
 from functools import lru_cache
+import pandas as pd
 
 st.set_page_config(page_title="アリーナダイレクト期待報酬ツール")
 
@@ -70,8 +71,10 @@ with st.spinner("計算中..."):
     expected_box_jem_equivalent = expected_box * (box_price_dollar / jem_price_dollar)
     total_expected_reward_jem = expected_jem + expected_box_jem_equivalent
 
+    # 参加費をドル換算した正確な利益計算
+    entry_cost_dollar = entry_cost * jem_price_dollar
     net_jem = total_expected_reward_jem - entry_cost
-    expected_dollar_value = total_expected_reward_jem * jem_price_dollar
+    net_dollar = (total_expected_reward_jem * jem_price_dollar) - entry_cost_dollar
 
     st.subheader("◼ 期待報酬")
     st.write(f"ジェム: {expected_jem:.2f} ジェム")
@@ -79,8 +82,16 @@ with st.spinner("計算中..."):
 
     st.subheader("◼ 期待利益")
     st.write(f"ジェム換算での期待利益: {net_jem:.2f} ジェム")
-    st.write(f"ドル換算での期待利益: ${expected_dollar_value:.2f}")
+    st.write(f"ドル換算での期待利益: ${net_dollar:.2f}")
 
     st.subheader("◼ 勝利数ごとの確率")
-    for wins in sorted(distribution.keys()):
-        st.write(f"{wins}勝：{distribution[wins] * 100:.2f}%")
+    st.write("表形式で確認：")
+    df = pd.DataFrame({"勝利数": list(distribution.keys()), "確率（%）": [round(distribution[k] * 100, 2) for k in distribution]})
+    df = df.sort_values("勝利数")
+    st.dataframe(df, use_container_width=True)
+
+    st.subheader("◼ シミュレーション：N回参加した場合の出現数（期待値）")
+    sim_n = st.number_input("参加回数", min_value=1, value=1000)
+    sim_data = {str(k) + "勝": round(distribution[k] * sim_n) for k in sorted(distribution.keys())}
+    sim_df = pd.DataFrame([sim_data], index=[f"{sim_n}回中"])
+    st.dataframe(sim_df.T, use_container_width=True)
