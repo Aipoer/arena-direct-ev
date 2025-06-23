@@ -31,16 +31,18 @@ with st.expander("◼ 勝利数ごとの報酬入力（ジェム／BOX）", expa
 # --- 確率分布計算 ---
 @lru_cache(None)
 def dp(wins, losses, p):
-    if losses >= 2: return {wins:1.0}
-    if wins >= 7:   return {7:1.0}
+    if losses >= 2:
+        return {wins: 1.0}
+    if wins >= 7:
+        return {7: 1.0}
     res = {}
-    for win_inc, prob in ((1,p),(0,1-p)):
-        nw, nl = wins+win_inc, losses+(win_inc==0)
+    for win_inc, prob in ((1, p), (0, 1-p)):
+        nw, nl = wins + win_inc, losses + (win_inc == 0)
         for k, v in dp(nw, nl, p).items():
-            res[k] = res.get(k,0) + v * prob
+            res[k] = res.get(k, 0) + v * prob
     return res
 
-dist = dp(0,0,win_rate)
+dist = dp(0, 0, win_rate)
 
 # --- 基本期待値 ---
 exp_jem = sum(reward_table[k] * v for k, v in dist.items())
@@ -98,7 +100,7 @@ if stop_on7:
         tot_jem += ej; tot_box += eb; tot_dollar += ed
     sim_df = pd.DataFrame(data)
     st.dataframe(sim_df, use_container_width=True)
-    
+
     # --- 合計期待収支 ---
     rev_jem_total = tot_jem + tot_box * (box_price_dollar / jem_price_dollar)
     rev_dollar_total = tot_jem * jem_price_dollar + tot_box * box_price_dollar
@@ -113,17 +115,17 @@ if stop_on7:
     st.write(f"総コスト: {cost_jem_total:.2f} ジェム (~${cost_dollar_total:.2f})")
     st.write(f"純期待利益: {net_jem_total:.2f} ジェム (~${net_dollar_total:.2f})")
 
-        # --- シミュレーション後の勝利数分布 ---
-    # 各試行ごとの勝利数分布を試行回数分にスケーリング
+    # --- シミュレーション後の勝利数分布 ---
     sim_dist = {k: dist[k] * exp_trials for k in dist}
     sim_df2 = pd.DataFrame({
         "勝利数": list(sim_dist.keys()),
         "期待回数": list(sim_dist.values()),
+        "期待ジェム": [reward_table[k] * dist[k] * exp_trials for k in dist],
+        "期待BOX": [box_table[k] * dist[k] * exp_trials for k in dist]
     })
-    # 期待試行回数: 母数として表示
-    st.subheader("◼ シミュレーション後の勝利数分布（期待回数）")
+    st.subheader("◼ シミュレーション後の勝利数分布（期待回数・期待報酬）")
     st.write(f"(母数: 期待試行回数 {exp_trials:.2f} 回)")
-    st.table(sim_df2)
+    st.table(sim_df2.sort_values("勝利数").reset_index(drop=True))
 else:
     trials = max_trials
     rev_jem_total = rev_jem * trials
@@ -143,21 +145,21 @@ else:
     sim_df3 = pd.DataFrame({
         "勝利数": list(sim_dist2.keys()),
         "期待回数": list(sim_dist2.values()),
-        "%": [v/trials*100 for v in sim_dist2.values()]
+        "期待ジェム": [reward_table[k] * dist[k] * trials for k in dist],
+        "期待BOX": [box_table[k] * dist[k] * trials for k in dist]
     })
-    sim_df3 = sim_df3.sort_values("勝利数").reset_index(drop=True)
-    st.subheader("◼ 継続プレイ後の勝利数分布（期待回数）")
-    st.table(sim_df3)
+    st.subheader("◼ 継続プレイ後の勝利数分布（期待回数・期待報酬）")
+    st.table(sim_df3.sort_values("勝利数").reset_index(drop=True))
 
 # --- 勝率シナリオ比較 ---
 st.subheader("◼ 勝率シナリオ比較")
 col1, col2, col3 = st.columns(3)
 with col1:
-    wr_min = st.number_input("勝率範囲下限", min_value=0.0, max_value=1.0, value=0.3, step=0.05, format="%.2f")
+    wr_min = st.number_input("勝率範囲下限", min_value=0.0, max_value=1.0, value=0.3, step=0.02, format="%.2f")
 with col2:
-    wr_max = st.number_input("勝率範囲上限", min_value=0.0, max_value=1.0, value=0.9, step=0.05, format="%.2f")
+    wr_max = st.number_input("勝率範囲上限", min_value=0.0, max_value=1.0, value=0.7, step=0.02, format="%.2f")
 with col3:
-    wr_step = st.number_input("勝率刻み", min_value=0.01, max_value=0.5, value=0.1, step=0.01, format="%.2f")
+    wr_step = st.number_input("勝率刻み", min_value=0.01, max_value=0.1, value=0.02, step=0.01, format="%.2f")
 
 wr_list = np.arange(wr_min, wr_max + 1e-6, wr_step)
 scenario = []
