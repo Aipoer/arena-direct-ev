@@ -82,7 +82,7 @@ with st.spinner("計算中..."):
     st.write(f"ドル換算での期待利益: ${net_dollar:.2f}")
 
     st.subheader("◼ シミュレーション：BOXが出るまでの試行回数別パターン")
-    sim_box_try = st.number_input("最大試行回数", min_value=1, value=10)
+    sim_box_try = st.number_input("最大試行回数", min_value=1, max_value=100, value=10)
     box_prob = distribution.get(7, 0)
     box_miss_prob = 1 - box_prob
 
@@ -90,34 +90,44 @@ with st.spinner("計算中..."):
         "回数": [],
         "BOX獲得（確率）": [],
         "BOX未獲得（確率）": [],
-        "合計": [],
+        "合計確率": [],
         "期待ジェム": [],
         "期待BOX": [],
         "期待ドル": []
     }
+
+    total_expected_jem = 0
+    total_expected_box = 0
+    total_expected_dollar = 0
+
     for i in range(1, sim_box_try + 1):
-        prob_success_on_i = box_miss_prob ** (i - 1) * box_prob
-        prob_fail_all = box_miss_prob ** i
+        prob_success = box_miss_prob ** (i - 1) * box_prob
+        prob_fail = box_miss_prob ** sim_box_try if i == sim_box_try else 0
 
-        jem_if_success = expected_jem_per_try * i
-        box_if_success = expected_box_per_try * i
-        dollar_if_success = (jem_if_success + box_if_success * (box_price_dollar / jem_price_dollar)) * jem_price_dollar
+        jem = expected_jem_per_try * i
+        box = expected_box_per_try * i
+        dollar = (jem + box * (box_price_dollar / jem_price_dollar)) * jem_price_dollar
 
-        jem_if_fail = expected_jem_per_try * i
-        box_if_fail = expected_box_per_try * i
-        dollar_if_fail = (jem_if_fail + box_if_fail * (box_price_dollar / jem_price_dollar)) * jem_price_dollar
-
-        total_jem = prob_success_on_i * jem_if_success + prob_fail_all * jem_if_fail
-        total_box = prob_success_on_i * box_if_success + prob_fail_all * box_if_fail
-        total_dollar = prob_success_on_i * dollar_if_success + prob_fail_all * dollar_if_fail
+        total_jem = prob_success * jem + prob_fail * jem
+        total_box = prob_success * box + prob_fail * box
+        total_dollar = prob_success * dollar + prob_fail * dollar
 
         try_data["回数"].append(i)
-        try_data["BOX獲得（確率）"].append(prob_success_on_i)
-        try_data["BOX未獲得（確率）"].append(prob_fail_all)
-        try_data["合計"].append(prob_success_on_i + prob_fail_all)
+        try_data["BOX獲得（確率）"].append(prob_success if i < sim_box_try else 0)
+        try_data["BOX未獲得（確率）"].append(prob_fail if i == sim_box_try else 0)
+        try_data["合計確率"].append(prob_success + prob_fail)
         try_data["期待ジェム"].append(total_jem)
         try_data["期待BOX"].append(total_box)
         try_data["期待ドル"].append(total_dollar)
 
+        total_expected_jem += total_jem
+        total_expected_box += total_box
+        total_expected_dollar += total_dollar
+
     try_df = pd.DataFrame(try_data)
     st.dataframe(try_df, use_container_width=True)
+
+    st.write("### ✅ 合計期待収支（最大試行回数まででBOX出たら終了・出なければ最大回数まで）")
+    st.write(f"期待ジェム: {total_expected_jem:.2f}")
+    st.write(f"期待BOX: {total_expected_box:.2f}")
+    st.write(f"期待ドル: ${total_expected_dollar:.2f}")
