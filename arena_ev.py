@@ -67,16 +67,19 @@ with st.spinner("計算中..."):
     expected_jem = sum(reward_table.get(wins, 0) * prob for wins, prob in distribution.items())
     expected_box = sum(box_table.get(wins, 0) * prob for wins, prob in distribution.items())
 
-    net_jem = expected_jem - entry_cost
-    expected_dollar_value = expected_jem * jem_price_dollar
+    expected_box_jem_equivalent = expected_box * (box_price_dollar / jem_price_dollar)
+    total_expected_reward_jem = expected_jem + expected_box_jem_equivalent
+
+    net_jem = total_expected_reward_jem - entry_cost
+    expected_dollar_value = total_expected_reward_jem * jem_price_dollar
 
     st.subheader("◼ 期待報酬")
     st.write(f"ジェム: {expected_jem:.2f} ジェム")
-    st.write(f"BOX: {expected_box:.2f} 箱（{expected_box * box_price_dollar:.2f}ドル ≒ {expected_box * box_price_dollar / jem_price_dollar:.2f}ジェム相当）")
+    st.write(f"BOX: {expected_box:.2f} 箱（{expected_box * box_price_dollar:.2f}ドル ≒ {expected_box_jem_equivalent:.2f}ジェム相当）")
 
     st.subheader("◼ 期待利益")
     st.write(f"ジェム換算での期待利益: {net_jem:.2f} ジェム")
-    st.write(f"ドル換算期待値: ${expected_dollar_value:.2f}")
+    st.write(f"ドル換算での期待利益: ${expected_dollar_value:.2f}")
 
     st.subheader("◼ 勝利数ごとの確率")
     for wins in sorted(distribution.keys()):
