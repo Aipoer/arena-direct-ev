@@ -10,14 +10,15 @@ st.title("アリーナダイレクト 期待報酬シミュレーター")
 win_rate = st.slider("勝率", 0.0, 1.0, 0.6, 0.01)
 with st.expander("◼ コスト設定", expanded=True):
     entry_cost = st.number_input("参加費（ジェム）", value=8000)
-    box_price_dollar = st.number_input("BOXの価格（ドル）", value=360.0)
+    box_price_dollar = st.number_input("BOXの価格（ドル）", value=164.7)
     jem_price_dollar = st.number_input("ジェム単価（ドル/ジェム）", value=99.99/20000, format="%.6f")
 
 # --- 報酬設定 ---
 default_rewards = {i: 0 for i in range(8)}
 default_boxes = {i: 0.0 for i in range(8)}
-default_rewards.update({3:3600,4:7200,5:10800,6:14400})
-default_boxes[7] = 1.0
+default_rewards.update({3:3600,4:7200,5:10800})
+default_boxes[6] = 1.0
+default_boxes[7] = 2.0
 with st.expander("◼ 勝利数ごとの報酬入力（ジェム／BOX）", expanded=False):
     reward_table = {}
     box_table = {}
