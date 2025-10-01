@@ -2,6 +2,7 @@ import streamlit as st
 from functools import lru_cache
 import pandas as pd
 import numpy as np
+import altair as alt
 
 st.set_page_config(page_title="アリーナダイレクト期待報酬ツール")
 st.title("アリーナダイレクト 期待報酬シミュレーター")
@@ -229,8 +230,26 @@ with col3:
 sample_size = 1000
 samples = np.clip(base_wr + (np.random.beta(shape_k, shape_k, sample_size)-0.5)*2*spread_wr, 0, 1)
 hist, bins = np.histogram(samples, bins=20, range=(0,1))
-hist_df = pd.DataFrame({"win_rate": (bins[:-1]+bins[1:])/2, "count": hist})
-st.bar_chart(hist_df.set_index("win_rate"))
+hist_df = pd.DataFrame({
+    "win_rate": (bins[:-1] + bins[1:]) / 2,
+    "count": hist,
+    "win_rate_band": [f"{bins[i]:.2f}〜{bins[i+1]:.2f}" for i in range(len(hist))],
+})
+
+st.caption("ヒストグラムは勝率を0.05刻み（20分割）で集計しています。")
+hist_chart = (
+    alt.Chart(hist_df)
+    .mark_bar()
+    .encode(
+        x=alt.X("win_rate:Q", axis=alt.Axis(format="%", title="勝率")),
+        y=alt.Y("count:Q", axis=alt.Axis(title="サンプル数")),
+        tooltip=[
+            alt.Tooltip("win_rate_band:N", title="勝率帯"),
+            alt.Tooltip("count:Q", title="サンプル数"),
+        ],
+    )
+)
+st.altair_chart(hist_chart, use_container_width=True)
 
 if st.button("シミュレーション開始"):
     results = []
